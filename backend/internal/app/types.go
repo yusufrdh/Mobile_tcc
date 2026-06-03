@@ -184,7 +184,7 @@ type HospitalRequest struct {
 
 type MobileProfileUpdateRequest struct {
 	QRToken   string  `json:"qr_token"`
-	FullName  string  `json:"fullName"`
+	FullName  string  `json:"full_name"`
 	Email     string  `json:"email"`
 	Phone     string  `json:"phone"`
 	Address   string  `json:"address"`
@@ -195,4 +195,26 @@ type MobileProfileUpdateRequest struct {
 type DeviceTokenUpdateRequest struct {
 	QRToken     string `json:"qr_token"`
 	DeviceToken string `json:"device_token"`
+}
+
+type MobileLoginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+// INI STRUCT BARU UNTUK REGISTER & LUPA PASSWORD
+type MobileRegisterRequest struct {
+	NIK       string `json:"nik"`
+	FullName  string `json:"full_name"`
+	Email     string `json:"email"`
+	Password  string `json:"password"`
+	Phone     string `json:"phone"`
+	BloodType string `json:"blood_type"`
+	Gender    string `json:"gender"`
+	Address   string `json:"address"`
+}
+
+type MobileForgotPasswordRequest struct {
+	Email       string `json:"email"`
+	NewPassword string `json:"new_password"`
 }

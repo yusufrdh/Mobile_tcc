@@ -79,6 +79,14 @@ func (a *App) serveHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) routeMobile(w http.ResponseWriter, r *http.Request, path string) {
 	switch {
+	case r.Method == http.MethodPost && path == "/mobile/login":
+		a.handleMobileLogin(w, r)
+	// --- ENDPOINT BARU ---
+	case r.Method == http.MethodPost && path == "/mobile/register":
+		a.handleMobileRegister(w, r)
+	case r.Method == http.MethodPost && path == "/mobile/forgot-password":
+		a.handleMobileForgotPassword(w, r)
+	// ----------------------
 	case r.Method == http.MethodPost && path == "/mobile/respond":
 		a.handleMobileRespond(w, r)
 	case r.Method == http.MethodGet && path == "/mobile/broadcast/active":
@@ -221,6 +229,7 @@ func (a *App) handleMobileActiveBroadcast(w http.ResponseWriter, r *http.Request
 	ok(w, active, http.StatusOK)
 }
 
+// INI FUNGSI UPDATE PROFILE YANG UDAH DI-REVISI (Biar balikin data persis kayak Login)
 func (a *App) handleMobileUpdateProfile(w http.ResponseWriter, r *http.Request) {
 	var input MobileProfileUpdateRequest
 	if err := decodeJSON(r, &input); err != nil {
@@ -228,7 +237,21 @@ func (a *App) handleMobileUpdateProfile(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	donor, err := a.store.MobileUpdateProfile(r.Context(), input)
-	a.respond(w, donor, err, http.StatusOK)
+	if err != nil {
+		fail(w, http.StatusBadRequest, "UPDATE_FAILED", err.Error())
+		return
+	}
+	
+	// Balikin JSON persis kayak response login biar flutter tinggal save
+	ok(w, map[string]interface{}{
+		"data": map[string]interface{}{
+			"full_name":  donor.FullName,
+			"email":      donor.Email,
+			"blood_type": donor.BloodType,
+			"qr_token":   donor.UUID,
+		},
+		"message": "Profil berhasil diperbarui",
+	}, http.StatusOK)
 }
 
 func (a *App) handleMobileUpdateDeviceToken(w http.ResponseWriter, r *http.Request) {
@@ -540,4 +563,71 @@ func (l *broadcastLimiter) Allow(key string) bool {
 	kept = append(kept, now)
 	l.hits[key] = kept
 	return true
+}
+
+func (a *App) handleMobileLogin(w http.ResponseWriter, r *http.Request) {
+	var input MobileLoginRequest
+	if err := decodeJSON(r, &input); err != nil {
+		fail(w, http.StatusBadRequest, "BAD_REQUEST", "Body login tidak valid.")
+		return
+	}
+
+	donor, err := a.store.VerifyMobileUser(r.Context(), input.Email, input.Password)
+	if err != nil {
+		fail(w, http.StatusUnauthorized, "UNAUTHORIZED", err.Error())
+		return
+	}
+
+	ok(w, map[string]interface{}{
+		"data": map[string]interface{}{
+			"full_name":  donor.FullName,
+			"email":      donor.Email,
+			"blood_type": donor.BloodType,
+			"qr_token":   donor.UUID,
+		},
+	}, http.StatusOK)
+}
+
+// HANDLER BARU UNTUK REGISTER PENDONOR
+func (a *App) handleMobileRegister(w http.ResponseWriter, r *http.Request) {
+	var input MobileRegisterRequest
+	if err := decodeJSON(r, &input); err != nil {
+		fail(w, http.StatusBadRequest, "BAD_REQUEST", "Body register tidak valid.")
+		return
+	}
+
+	donor, err := a.store.MobileRegisterUser(r.Context(), input)
+	if err != nil {
+		fail(w, http.StatusBadRequest, "REGISTER_FAILED", err.Error())
+		return
+	}
+
+	ok(w, map[string]interface{}{
+		"data": map[string]interface{}{
+			"full_name":  donor.FullName,
+			"email":      donor.Email,
+			"blood_type": donor.BloodType,
+			"qr_token":   donor.UUID,
+		},
+		"message": "Registrasi berhasil",
+	}, http.StatusOK)
+}
+
+// HANDLER BARU UNTUK LUPA PASSWORD PENDONOR
+func (a *App) handleMobileForgotPassword(w http.ResponseWriter, r *http.Request) {
+	var input MobileForgotPasswordRequest
+	if err := decodeJSON(r, &input); err != nil {
+		fail(w, http.StatusBadRequest, "BAD_REQUEST", "Body tidak valid.")
+		return
+	}
+
+	err := a.store.MobileForgotPassword(r.Context(), input.Email, input.NewPassword)
+	if err != nil {
+		fail(w, http.StatusBadRequest, "FAILED", err.Error())
+		return
+	}
+
+	ok(w, map[string]interface{}{
+		"message": "Kata sandi berhasil diubah",
+	}, http.StatusOK)
 }

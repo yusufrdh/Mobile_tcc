@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/session_manager.dart'; // Wajib ada
 import '../../home/pages/dashboard_page.dart';
 import '../controllers/auth_controller.dart';
 import 'register_page.dart';
@@ -31,13 +32,21 @@ class _LoginPageState extends State<LoginPage> {
 
     setState(() => _isLoading = true);
     
-    // Perbaikan: Menerima return sebagai Map
     final Map<String, dynamic> res = await AuthController().login(email, password);
     
     if (mounted) {
       setState(() => _isLoading = false);
       
       if (res['success'] == true) {
+        
+        // --- BAGIAN INI YANG KEMAREN ILANG DARI KODINGAN LU ---
+        final data = res['data'] as Map<String, dynamic>;
+        final token = data['qr_token']?.toString() ?? 'token_sementara';
+        
+        await SessionManager().init();
+        await SessionManager().saveSession(token, data);
+        // ------------------------------------------------------
+
         Navigator.pushReplacement(
           context, 
           MaterialPageRoute(builder: (_) => const DashboardPage()),

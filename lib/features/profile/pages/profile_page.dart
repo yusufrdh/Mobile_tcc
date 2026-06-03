@@ -14,14 +14,20 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     final userData = SessionManager().userData;
-    final String displayName = userData?['name'] ?? 'Yusuf Nur Ramadhan';
-    final String displayEmail = userData?['email'] ?? 'yusuf.ramadhan@student.upnyk.ac.id';
-    final String initials = displayName.trim().isNotEmpty ? displayName.trim().substring(0, 2).toUpperCase() : 'YN';
+    
+    // Pengecekan ganda berbagai kemungkinan key dari backend
+    final String displayName = userData?['full_name'] ?? userData?['fullName'] ?? userData?['name'] ?? 'Pendonor';
+    final String displayEmail = userData?['email'] ?? 'Belum ada email';
+    
+    final String initials = displayName.trim().isNotEmpty 
+        ? (displayName.trim().length >= 2 ? displayName.trim().substring(0, 2).toUpperCase() : displayName.trim()[0].toUpperCase())
+        : 'PD';
 
     return Scaffold(
       backgroundColor: AppTheme.bgLight,
       appBar: AppBar(
         title: const Text('Profil Pengguna'),
+        backgroundColor: AppTheme.surfaceWhite,
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_outlined),
