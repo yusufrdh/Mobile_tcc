@@ -1,35 +1,48 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 
 class AuthController extends ChangeNotifier {
+  final String baseUrl = 'http://10.0.2.2:8080/api/v1';
   bool _isLoading = false;
-  String? _errorMessage;
 
   bool get isLoading => _isLoading;
-  String? get errorMessage => _errorMessage;
 
-  Future<bool> login(String email, String password) async {
-    if (email.isEmpty || password.isEmpty) {
-      _errorMessage = 'Email dan password tidak boleh kosong.';
-      notifyListeners();
-      return false;
-    }
-
+  Future<Map<String, dynamic>> login(String email, String password) async {
     _setLoadingState(true);
+
     try {
-      // Disiapkan untuk integrasi endpoint API ASP.NET Core
-      await Future.delayed(const Duration(milliseconds: 1500));
+      final response = await http.post(
+        Uri.parse('$baseUrl/mobile/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email,
+          'password': password,
+        }),
+      ).timeout(const Duration(seconds: 10));
+
+      final data = jsonDecode(response.body);
       _setLoadingState(false);
-      return true;
+
+      if (response.statusCode == 200) {
+        return {'success': true, 'data': data['data'], 'message': 'Login Berhasil'};
+      } else {
+        return {
+          'success': false, 
+          'message': data['error']?['message'] ?? 'Login gagal'
+        };
+      }
     } catch (e) {
       _setLoadingState(false);
-      _errorMessage = 'Koneksi gagal. Silakan coba kembali.';
-      return false;
+      return {
+        'success': false, 
+        'message': 'Gagal koneksi ke server.'
+      };
     }
   }
 
   void _setLoadingState(bool value) {
     _isLoading = value;
-    _errorMessage = null;
     notifyListeners();
   }
 }
